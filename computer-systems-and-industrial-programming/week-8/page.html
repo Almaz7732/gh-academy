@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MovieSearch - Films and serials</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-box input {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            width: 300px;
+        }
+
+        .search-box button {
+            padding: 8px 16px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .filters {
+            background-color: white;
+            padding: 20px 0;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background-color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover {
+            background-color: #f8f9fa;
+        }
+
+        .filter-btn.active {
+            background-color: #e74c3c;
+            color: white;
+            border-color: #e74c3c;
+        }
+
+        .movies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .movie-card {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .movie-poster {
+            width: 100%;
+            height: 300px;
+            background-color: #ecf0f1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+
+        .movie-info {
+            padding: 15px;
+        }
+
+        .movie-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 1.1rem;
+        }
+
+        .movie-year {
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+
+        .movie-rating {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .footer {
+            background-color: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">MovieSearch</div>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search film...">
+                    <button onclick="searchMovies()">Find</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="filters">
+        <div class="container">
+            <div class="filter-buttons" id="filterButtons">
+            </div>
+        </div>
+    </div>
+
+    <main class="container">
+        <div class="movies-grid" id="moviesGrid">
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 MovieSearch. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        var movies = [];
+
+        const genres = ["все", "фантастика", "драма", "боевик", "криминал", "фэнтези"];
+
+        let currentGenre = "все";
+        let searchQuery = "";
+
+        async function initPage() {
+            await loadMovies();
+            await renderFilters();
+            await renderMovies();
+        }
+
+        async function loadMovies() {
+            try {
+                const response = await fetch('http://localhost:8080/api/movies');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                movies = await response.json();
+            } catch (error) {
+                console.error('Error loading films:', error);
+            }
+        }
+
+        function renderFilters() {
+            const filterButtons = document.getElementById('filterButtons');
+            filterButtons.innerHTML = genres.map(genre =>
+                `<button class="filter-btn ${genre === currentGenre ? 'active' : ''}"
+                        onclick="setGenre('${genre}')">
+                    ${genre.charAt(0).toUpperCase() + genre.slice(1)}
+                </button>`
+            ).join('');
+        }
+
+        function setGenre(genre) {
+            currentGenre = genre;
+            renderFilters();
+            renderMovies();
+        }
+
+        function searchMovies() {
+            const searchInput = document.getElementById('searchInput');
+            searchQuery = searchInput.value.toLowerCase();
+            renderMovies();
+        }
+
+        function getFilteredMovies() {
+            return movies.filter(movie => {
+                const matchesGenre = currentGenre === "все" || movie.genre === currentGenre;
+                const matchesSearch = movie.title.toLowerCase().includes(searchQuery) ||
+                                    movie.year.toString().includes(searchQuery);
+                return matchesGenre && matchesSearch;
+            });
+        }
+
+        function renderMovies() {
+            const moviesGrid = document.getElementById('moviesGrid');
+            const filteredMovies = getFilteredMovies();
+
+            if (filteredMovies.length === 0) {
+                moviesGrid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px;">Films not found</p>';
+                return;
+            }
+
+            moviesGrid.innerHTML = filteredMovies.map(movie => `
+                <div class="movie-card">
+                    <div class="movie-poster">${movie.poster}</div>
+                    <div class="movie-info">
+                        <div class="movie-title">${movie.title}</div>
+                        <div class="movie-year">${movie.year}</div>
+                        <div class="movie-rating">★ ${movie.rating}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchMovies();
+            }
+        });
+
+        window.onload = initPage;
+    </script>
+</body>
+</html>
