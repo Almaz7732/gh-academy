@@ -14,7 +14,7 @@ for _ in range(num_rolls):
 
 print("\nResults:")
 print("Amount | Frequency | Percentage")
-print("-" * 25)
+print("-" * 29)
 for sum_value, count in frequency.items():
     percentage = (count / num_rolls) * 100
     print(f"{sum_value:6} | {count:9} | {percentage:6.2f}%")
